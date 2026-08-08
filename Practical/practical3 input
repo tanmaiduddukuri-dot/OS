@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    printf("Before fork: PID = %d\n", getpid());
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        printf("Fork failed!\n");
+        return 1;
+    }
+
+    if (pid == 0) {
+        // Child process
+        printf("\nChild Process\n");
+        printf("Child PID  : %d\n", getpid());
+        printf("Parent PID : %d\n", getppid());
+        printf("Child sleeping for 3 seconds...\n");
+        sleep(3);
+        printf("Child done, exiting.\n");
+    } else {
+        // Parent process
+        printf("\nParent Process\n");
+        printf("Parent PID : %d\n", getpid());
+        printf("Child PID  : %d\n", pid);
+        printf("Parent waiting for child...\n");
+
+        int status;
+        wait(&status);
+
+        if (WIFEXITED(status))
+            printf("Child terminated with exit code %d\n", WEXITSTATUS(status));
+
+        printf("Parent exiting.\n");
+    }
+
+    return 0;
+}
