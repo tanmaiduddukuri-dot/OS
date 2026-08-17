@@ -1,0 +1,77 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <termios.h>
+
+#define MAX_BUFFER 1024
+
+struct termios orig_termios;
+
+void disableRawMode() {
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void enableRawMode() {
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disableRawMode);
+    struct termios raw = orig_termios;
+    raw.c_lflag &= ~(ECHO | ICANON);
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+int main() {
+    char buffer[MAX_BUFFER];
+    int index = 0;
+    char c;
+
+    enableRawMode();
+
+    printf("===================================================\n\r");
+    printf(" Skill 2 (Part 2) - Raw Terminal & Buffer Input \n\r");
+    printf(" Handles Backspace, Enter, and Multi-Char Cmds \n\r");
+    printf(" Type 'exit' to quit. \n\r");
+    printf("===================================================\n\r\n\r");
+    printf("raw-shell> ");
+    fflush(stdout);
+
+    while (1) {
+        if (read(STDIN_FILENO, &c, 1) <= 0) break;
+
+        if (c == '\n' || c == '\r') {
+            buffer[index] = '\0';
+            while (index > 0 && buffer[index - 1] == ' ') {
+                index--;
+                buffer[index] = '\0';
+            }
+            printf("\r\n");
+
+            if (strcmp(buffer, "exit") == 0) {
+                printf("Exiting raw shell. Goodbye!\r\n");
+                break;
+            }
+
+            if (index > 0) {
+                printf("[Executed Command]: \"%s\" (Length: %d)\r\n", buffer, index);
+            }
+
+            index = 0;
+            printf("raw-shell> ");
+            fflush(stdout);
+        } else if (c == 127 || c == '\b') {
+            if (index > 0) {
+                index--;
+                printf("\b \b");
+                fflush(stdout);
+            }
+        } else if (c >= 32 && c <= 126) {
+            if (index < MAX_BUFFER - 1) {
+                buffer[index++] = c;
+                putchar(c);
+                fflush(stdout);
+            }
+        }
+    }
+
+    return 0;
+}
