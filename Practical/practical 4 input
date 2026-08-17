@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <termios.h>
+
+#define MAX_INPUT 100
+
+// Function to enable character-by-character input
+void enableRawMode(struct termios *old)
+{
+    struct termios raw;
+
+    tcgetattr(STDIN_FILENO, old);
+    raw = *old;
+
+    raw.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+// Restore normal terminal mode
+void disableRawMode(struct termios *old)
+{
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, old);
+}
+
+int main()
+{
+    char input[MAX_INPUT];
+    int index;
+    char ch;
+    struct termios old;
+
+    enableRawMode(&old);
+
+    printf("Interactive Command Shell\n");
+    printf("Type 'exit' to quit.\n\n");
+
+    while (1)
+    {
+        index = 0;
+
+        printf("myshell> ");
+        fflush(stdout);
+
+        while (1)
+        {
+            ch = getchar();
+
+            // Handle Enter key
+            if (ch == '\n')
+            {
+                input[index] = '\0';
+                printf("\n");
+                break;
+            }
+
+            // Handle Backspace
+            if (ch == 127 || ch == '\b')
+            {
+                if (index > 0)
+                {
+                    index--;
+                    printf("\b \b");
+                    fflush(stdout);
+                }
+                continue;
+            }
+
+            // Store normal characters in input buffer
+            if (index < MAX_INPUT - 1)
+            {
+                input[index++] = ch;
+                printf("%c", ch);
+                fflush(stdout);
+            }
+        }
+
+        // Exit condition
+        if (strcmp(input, "exit") == 0)
+        {
+            printf("Exiting shell...\n");
+            break;
+        }
+
+        // Handle empty input
+        if (strlen(input) == 0)
+        {
+            continue;
+        }
+
+        // Display entered command
+        printf("You entered: %s\n", input);
+    }
+
+    disableRawMode(&old);
+
+    return 0;
+}
